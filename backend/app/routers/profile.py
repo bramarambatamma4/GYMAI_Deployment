@@ -9,6 +9,7 @@ router = APIRouter(prefix="/api/profile", tags=["profile"])
 
 PROFILE_FIELDS = (
     ("age", "age"),
+    ("gender", "gender"),
     ("height_cm", "height"),
     ("weight_kg", "weight"),
     ("goal", "goal"),
@@ -71,10 +72,7 @@ def update_profile(
             equipment = ["None"]
         data["equipment"] = list(dict.fromkeys(equipment))
 
-    effective_level = data.get("fitness_level", current_user.fitness_level)
-    effective_equipment = data.get("equipment", current_user.equipment) or []
-    if effective_level in {"Intermediate", "Advanced"} and "None" in effective_equipment:
-        raise HTTPException(status_code=422, detail="Intermediate and Advanced training require equipment.")
+    # CHANGE: any level may train with or without equipment (the planner adapts), so no equipment rule here.
 
     for field, value in data.items():
         setattr(current_user, field, value)

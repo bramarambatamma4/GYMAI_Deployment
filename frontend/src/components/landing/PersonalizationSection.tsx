@@ -12,6 +12,8 @@ export function PersonalizationSection() {
     <section className="py-20 sm:py-28 border-t border-surface-border">
       <div className="container-shell">
         <ScrollReveal>
+         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+          <div>
           <p className="label-eyebrow mb-3">Personal training</p>
           <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl leading-tight mb-4">
             A plan shaped around the way you train
@@ -53,6 +55,23 @@ export function PersonalizationSection() {
               </button>
             ))}
           </div>
+          </div>
+
+          {/* CHANGE: image on the right side of the Personal training section */}
+          <div className="card-surface relative overflow-hidden">
+            <img
+              src="https://images.unsplash.com/photo-1534367610401-9f5ed68180aa?auto=format&fit=crop&w=1000&q=85"
+              onError={(e) => { e.currentTarget.src = 'https://img.freepik.com/premium-photo/cropped-photo-strong-athlrtic-man-taking-dumbbells-from-floor-work-out-modern-gym-warm-orange-light_116317-20357.jpg' }}
+              alt="Athlete training with a barbell in the gym"
+              loading="lazy"
+              className="aspect-[4/3] w-full object-cover sm:aspect-[5/4] lg:aspect-[4/5]"
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-5">
+              <span className="inline-block rounded-full border border-orange/50 bg-black/50 px-3 py-1 text-xs font-medium text-orange backdrop-blur">{goal} · {level}</span>
+              <p className="mt-2 text-sm text-white/80">Your plan adapts to this combination.</p>
+            </div>
+          </div>
+         </div>
         </ScrollReveal>
 
       </div>

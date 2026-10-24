@@ -5,6 +5,9 @@ export interface User {
 
   avatar_url?: string | null
 
+  gender?: string | null
+  is_admin?: boolean
+
   fitness_level?: FitnessLevel | null
 
   goal?: Goal | null
@@ -97,6 +100,8 @@ export interface Workout {
   difficulty: Difficulty
   exercises: WorkoutExercise[]
   scheduledFor?: string
+  aiSource?: string
+  aiNote?: string
 }
 
 export interface ProgressPoint {

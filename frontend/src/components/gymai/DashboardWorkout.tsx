@@ -7,7 +7,7 @@ interface DashboardWorkoutProps { workout: Workout | null }
 export function DashboardWorkout({ workout }: DashboardWorkoutProps) {
   if (!workout) {
     return (
-      <section className="relative overflow-hidden border border-surface-border bg-surface px-6 py-8 sm:px-8">
+      <section className="relative overflow-hidden border border-surface-border bg-surface glow-card px-6 py-8 sm:px-8">
         <div className="absolute left-0 top-0 h-full w-1 bg-emerald" />
         <div className="max-w-3xl">
           <p className="label-eyebrow">Training engine</p>
@@ -25,7 +25,7 @@ export function DashboardWorkout({ workout }: DashboardWorkoutProps) {
   const poseCount = workout.exercises.filter((exercise) => exercise.poseSupported).length
 
   return (
-    <section className="relative min-h-[330px] overflow-hidden border border-surface-border bg-surface">
+    <section className="relative min-h-[330px] overflow-hidden border border-surface-border bg-surface glow-card">
       {heroImage && <img src={heroImage} alt="" className="absolute inset-0 h-full w-full object-cover opacity-20" />}
       <div className="absolute inset-0 bg-gradient-to-r from-charcoal via-charcoal/95 to-charcoal/45" />
       <div className="relative flex min-h-[330px] flex-col justify-between p-6 sm:p-8">

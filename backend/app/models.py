@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import (
     String,
@@ -9,6 +9,9 @@ from sqlalchemy import (
     Boolean,
     JSON,
     ForeignKey,
+    Text,
+    Date,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import (
     Mapped,
@@ -94,6 +97,11 @@ class User(Base):
         nullable=True,
     )
 
+    gender: Mapped[str | None] = mapped_column(String(30), nullable=True)
+
+    # Set with `python -m app.make_admin you@email.com` - never from the website.
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
     profile_completed: Mapped[bool] = mapped_column(
         Boolean,
         default=False,
@@ -115,6 +123,19 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+
+
+class PendingRegistration(Base):
+    __tablename__ = "pending_registrations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    full_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    code_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, nullable=False)
 
 
 class PasswordResetCode(Base):
@@ -221,3 +242,61 @@ class PoseSession(Base):
     form_score: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     feedback: Mapped[str] = mapped_column(String(300), nullable=False, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, nullable=False, index=True)
+
+
+
+class UserPreference(Base):
+    """Per-user notification settings: where the user wants event alerts from."""
+    __tablename__ = "user_preferences"
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    notification_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    country: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
+    state: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
+    area: Mapped[str] = mapped_column(String(120), index=True, nullable=False, default="Other")
+    email_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class Notification(Base):
+    """A marathon / fitness event alert targeted at one country + state."""
+    __tablename__ = "notifications"
+
+    notification_id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    message_text: Mapped[str] = mapped_column(Text, nullable=False)
+    country: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
+    state: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
+    area: Mapped[str] = mapped_column(String(120), index=True, nullable=False, default="Other")
+    target_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
+
+
+class NotificationRead(Base):
+    """Marks a notification as read for one user (keeps alerts shared, reads private)."""
+    __tablename__ = "notification_reads"
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    notification_id: Mapped[str] = mapped_column(String(36), ForeignKey("notifications.notification_id", ondelete="CASCADE"), primary_key=True)
+    read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+
+class DailyWorkout(Base):
+    """CHANGE 4: one AI-generated workout per user per local day.
+
+    Lets the nightly job find "generated but not completed" workouts and lets
+    the web app restore the active plan from the email deep link.
+    """
+    __tablename__ = "daily_workouts"
+    __table_args__ = (UniqueConstraint("user_id", "day", name="uq_daily_workout_user_day"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    day: Mapped[date] = mapped_column(Date, index=True, nullable=False)  # local date (SCHEDULER_TIMEZONE)
+    workout_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    workout_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    plan: Mapped[dict] = mapped_column(JSON, nullable=False)  # serialized PersonalizedWorkoutOut
+    completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

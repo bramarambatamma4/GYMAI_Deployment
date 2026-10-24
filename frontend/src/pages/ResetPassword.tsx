@@ -56,7 +56,7 @@ export default function ResetPassword() {
         </div>
       ) : (
         <form onSubmit={reset} className="space-y-4" noValidate>
-          <div className="rounded-xl border border-surface-border bg-surface/70 px-4 py-3 text-sm text-ink-muted">
+          <div className="rounded-xl border border-surface-border bg-surface glow-card/70 px-4 py-3 text-sm text-ink-muted">
             <div className="flex items-center gap-2 font-medium text-ink"><LockKeyhole size={16} className="text-orange" /> Verification complete</div>
             <p className="mt-1 text-xs">Set a new password for <span className="text-ink">{email}</span>.</p>
           </div>

@@ -1,3 +1,7 @@
+import asyncio
+from pathlib import Path
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -17,6 +21,9 @@ from app.routers import (
     progress,
     profile,
     exercises,
+    notifications,
+    nutrition,
+    admin,
 )
 
 
@@ -49,20 +56,71 @@ def _upgrade_workout_sessions_schema() -> None:
 
 _upgrade_workout_sessions_schema()
 
+
+def _upgrade_users_schema() -> None:
+    columns = {c["name"] for c in inspect(engine).get_columns("users")}
+    if "gender" not in columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE users ADD COLUMN gender VARCHAR(30)"))
+    if "is_admin" not in columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE"))
+
+
+_upgrade_users_schema()
+
+
+def _upgrade_notification_schema() -> None:
+    inspector = inspect(engine)
+    for table in ("user_preferences", "notifications"):
+        try: columns = {c["name"] for c in inspector.get_columns(table)}
+        except Exception: continue
+        if "area" not in columns:
+            with engine.begin() as connection:
+                connection.execute(text(f"ALTER TABLE {table} ADD COLUMN area VARCHAR(120) NOT NULL DEFAULT 'Other'"))
+
+
+_upgrade_notification_schema()
+
 from app.database import SessionLocal
 with SessionLocal() as _seed_db:
     seed_exercises(_seed_db)
 
 
+from app.services.reminders import reminder_loop
+from app.database import DATABASE_URL
+
+print(f"[GymAI] build 2026-10-18-b | Using database: {DATABASE_URL}")  # CHANGE: shows exactly which file holds your accounts
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Startup summary: proves which database is in use and that accounts / history survived the restart.
+    try:
+        with SessionLocal() as db:
+            print(f"[GymAI] users: {db.query(models.User).count()}, saved workouts: {db.query(models.WorkoutSession).count()}")
+    except Exception as exc:  # never block startup
+        print(f"[GymAI] could not read database summary: {exc}")
+    # CHANGE 4: start the nightly incomplete-workout reminder
+    task = asyncio.create_task(reminder_loop()) if settings.reminder_enabled else None
+    try:
+        yield
+    finally:
+        if task:
+            task.cancel()
+
+
 app = FastAPI(
     title="GymAI API",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    allow_origin_regex=settings.cors_origin_regex,  # CHANGE: fixes 'Could not create your account' on port 5174
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -76,8 +134,11 @@ app.include_router(history.router)
 app.include_router(progress.router)
 app.include_router(profile.router)
 app.include_router(exercises.router)
+app.include_router(notifications.router)
+app.include_router(nutrition.router)
+app.include_router(admin.router)
 
-app.mount("/media", StaticFiles(directory="app/static"), name="media")
+app.mount("/media", StaticFiles(directory=str(Path(__file__).resolve().parent / "static")), name="media")  # CHANGE: absolute path, works from any folder
 
 
 @app.get("/api/health")

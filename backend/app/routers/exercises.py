@@ -89,8 +89,7 @@ def _photo_candidates(row):
         'Cable_Crunch': ['Cable_Crunch', 'Crunch'],
     }
     candidates.extend(aliases.get(base, []))
-    fallback = REAL_FALLBACK_IMAGES.get(row.muscle_group, 'Bodyweight_Squat')
-    candidates.append(fallback)
+    # CHANGE 2: no muscle-group fallback photo any more - it showed the wrong exercise. Unmatched exercises use the local guide art.
     # Preserve order and remove duplicates.
     candidates = list(dict.fromkeys(candidates))
     return [REAL_EXERCISE_IMAGE_BASE + f'{candidate}/0.jpg' for candidate in candidates], [REAL_EXERCISE_IMAGE_BASE + f'{candidate}/1.jpg' for candidate in candidates]

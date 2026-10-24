@@ -25,7 +25,7 @@ export function WorkoutCard({
     return (
       <Link
         to="/workout"
-        className="group block border border-surface-border bg-surface p-4 transition-all duration-200 hover:border-emerald/30 hover:bg-surface-raised"
+        className="group block border border-surface-border bg-surface glow-card p-4 transition-all duration-200 hover:border-emerald/30 hover:bg-surface-raised"
       >
         <div className="flex items-center gap-4">
 

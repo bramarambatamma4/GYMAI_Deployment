@@ -3,6 +3,7 @@ import type { User, Goal, FitnessLevel, Equipment } from '@/types'
 
 export interface ProfilePayload {
   age: number
+  gender?: string
   height_cm: number
   weight_kg: number
   goal: Goal

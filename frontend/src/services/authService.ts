@@ -16,6 +16,7 @@ export interface AuthResponse {
 export interface ProfileUpdateData {
   full_name?: string
   avatar_url?: string | null
+  gender?: string | null
   fitness_level?: FitnessLevel | null
   goal?: Goal | null
   training_frequency?: number | null
@@ -31,22 +32,10 @@ export interface ChangePasswordData {
   new_password: string
 }
 
-export async function registerUser(
-  fullName: string,
-  email: string,
-  password: string,
-): Promise<AuthResponse> {
-  const { data } = await api.post<AuthResponse>(
-    '/auth/register',
-    {
-      full_name: fullName,
-      email,
-      password,
-    },
-  )
-
-  return data
-}
+export interface RegistrationStart { detail:string; email:string }
+export async function registerUser(fullName:string,email:string,password:string):Promise<RegistrationStart>{ const {data}=await api.post<RegistrationStart>('/auth/register',{full_name:fullName,email,password}); return data }
+export async function verifyRegistration(email:string,code:string):Promise<AuthResponse>{ const {data}=await api.post<AuthResponse>('/auth/verify-registration',{email,code}); return data }
+export async function resendRegistrationCode(email:string):Promise<void>{ await api.post('/auth/resend-registration-code',{email}) }
 
 export async function loginUser(
   email: string,
@@ -122,4 +111,18 @@ export async function resetPasswordWithCode(
     new_password: newPassword,
     confirm_password: confirmPassword,
   })
+}
+
+
+/** Exchange a Google ID token (from "Continue with Google") for a GymAI session. */
+export async function googleLogin(credential: string): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>('/auth/google', { credential })
+  return data
+}
+
+
+/** Does this email already have an account? Used by the Create-account page. */
+export async function checkEmail(email: string): Promise<{ exists: boolean; google_only: boolean }> {
+  const { data } = await api.get<{ exists: boolean; google_only: boolean }>('/auth/email-status', { params: { email } })
+  return data
 }

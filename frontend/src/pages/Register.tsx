@@ -1,92 +1,12 @@
-import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Mail, User } from 'lucide-react'
-import { AuthLayout } from '@/components/auth/AuthLayout'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { PasswordInput } from '@/components/ui/PasswordInput'
-import { useAuth } from '@/context/AuthContext'
-import { useToast } from '@/context/ToastContext'
-
-export default function Register() {
-  const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { register, error, clearError } = useAuth()
-  const { showToast } = useToast()
-  const navigate = useNavigate()
-
-  const isValid =
-    fullName.trim().length > 1 && email.trim().length > 3 && email.includes('@') && password.length >= 6
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!isValid || loading) return
-    setLoading(true)
-    clearError()
-    try {
-      await register(fullName, email, password)
-      showToast('Account created — welcome to GymAI.', 'success')
-      navigate('/dashboard')
-    } catch {
-      // error surfaced via context
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <AuthLayout
-      eyebrow="Get started"
-      title="Create your account"
-      subtitle="Free to join — your first readiness readout is one workout away."
-    >
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <Input
-          label="Full name"
-          name="name"
-          autoComplete="name"
-          placeholder="Alex Rivera"
-          icon={<User size={16} />}
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-        />
-        <Input
-          label="Email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          icon={<Mail size={16} />}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <PasswordInput
-          label="Password"
-          name="password"
-          autoComplete="new-password"
-          placeholder="At least 6 characters"
-          hint="Use at least 6 characters."
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        {error && (
-          <p role="alert" className="rounded-lg border border-danger/25 bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
-            {error}
-          </p>
-        )}
-
-        <Button type="submit" disabled={!isValid || loading} className="w-full">{loading ? 'Creating account…' : 'Create account'}</Button>
-      </form>
-
-      <p className="mt-6 text-center text-sm text-ink-faint">
-        Already have an account?{' '}
-        <Link to="/login" className="text-orange hover:text-orange-light font-medium transition-colors">
-          Log in
-        </Link>
-      </p>
-    </AuthLayout>
-  )
-}
+import {useEffect,useState,type FormEvent} from 'react'
+import {Link,useNavigate} from 'react-router-dom'
+import {checkEmail} from '@/services/authService'
+import {getRememberedEmail} from '@/lib/rememberedEmail'
+import {Mail,User} from 'lucide-react'
+import {GoogleButton} from '@/components/auth/GoogleButton'
+import {AuthLayout} from '@/components/auth/AuthLayout'
+import {Button} from '@/components/ui/Button'
+import {Input} from '@/components/ui/Input'
+import {PasswordInput} from '@/components/ui/PasswordInput'
+import {useAuth} from '@/context/AuthContext'
+export default function Register(){const[fullName,setFullName]=useState(''),[email,setEmail]=useState(getRememberedEmail),[known,setKnown]=useState<{exists:boolean;google_only:boolean}|null>(null),[password,setPassword]=useState(''),[loading,setLoading]=useState(false);const{register,error,clearError}=useAuth(),navigate=useNavigate();useEffect(()=>{clearError()},[clearError]);useEffect(()=>{const v=email.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(v)){setKnown(null);return}let ok=true;const id=setTimeout(()=>checkEmail(v).then(r=>ok&&setKnown(r)).catch(()=>ok&&setKnown(null)),350);return()=>{ok=false;clearTimeout(id)}},[email]);const existing=!!(known?.exists&&!known.google_only),googleOnly=!!known?.google_only,valid=!existing&&!googleOnly&&fullName.trim().length>1&&/^\S+@\S+\.\S+$/.test(email)&&password.length>=6;const submit=async(e:FormEvent)=>{e.preventDefault();if(!valid||loading)return;setLoading(true);clearError();try{const em=await register(fullName,email,password);sessionStorage.setItem('gymai_pending_email',em);navigate(`/verify-email?email=${encodeURIComponent(em)}`)}catch{}finally{setLoading(false)}};return <AuthLayout eyebrow="Get started" title="Create your account" subtitle="Verify your email before your GymAI account is created."><form onSubmit={submit} className="space-y-4">{!existing&&!googleOnly&&<Input label="Full name" name="name" placeholder="Alex Rivera" icon={<User size={16}/>} value={fullName} onChange={e=>{setFullName(e.target.value);clearError()}}/>}<Input label="Email" name="email" type="email" placeholder="you@example.com" icon={<Mail size={16}/>} value={email} onChange={e=>{setEmail(e.target.value);clearError()}}/>{existing&&<p className="rounded-lg border border-orange/30 bg-orange/10 p-3 text-sm text-orange">This email is already registered. Please log in.</p>}{googleOnly&&<p className="rounded-lg border border-orange/30 bg-orange/10 p-3 text-sm text-orange">This account uses Google sign-in.</p>}{!existing&&!googleOnly&&<PasswordInput label="Password" name="password" placeholder="At least 6 characters" value={password} onChange={e=>{setPassword(e.target.value);clearError()}}/>}{error&&<p role="alert" className="rounded-lg border border-danger/25 bg-danger/10 p-3 text-sm text-danger">{error}</p>}{!existing&&!googleOnly&&<Button type="submit" disabled={!valid||loading} className="w-full">{loading?'Sending verification code…':'Create account'}</Button>}</form><GoogleButton/><p className="mt-6 text-center text-sm text-ink-faint">Already have an account? <Link to="/login" className="text-orange font-medium">Log in</Link></p></AuthLayout>}

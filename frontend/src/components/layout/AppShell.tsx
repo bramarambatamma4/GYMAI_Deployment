@@ -1,15 +1,13 @@
 import type { ReactNode } from 'react'
 import { Navbar } from './Navbar'
-import { MobileNav } from './MobileNav'
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-charcoal gym-app-bg">
       <Navbar />
-      <main className="px-5 pb-24 pt-24 lg:px-8 lg:pb-10 lg:pt-28">
+      <main className="px-5 pb-10 pt-6 lg:px-8 lg:pt-8">
         <div className="mx-auto w-full max-w-7xl">{children}</div>
       </main>
-      <MobileNav />
     </div>
   )
 }

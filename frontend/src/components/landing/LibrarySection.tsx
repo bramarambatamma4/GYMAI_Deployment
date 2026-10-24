@@ -20,7 +20,7 @@ export function LibrarySection() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {preview.map((ex, i) => (
             <ScrollReveal key={ex.name} delay={i * 0.06}>
-              <article className="group overflow-hidden rounded-2xl border border-surface-border bg-surface">
+              <article className="group overflow-hidden rounded-2xl border border-surface-border bg-surface glow-card">
                 <div className="relative aspect-[4/3] overflow-hidden"><img src={ex.image} alt={ex.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /><div className="absolute inset-0 bg-gradient-to-t from-charcoal/70 to-transparent" /><span className="absolute bottom-3 left-3 rounded-full bg-charcoal/75 px-2.5 py-1 text-[10px] font-medium text-orange backdrop-blur">{ex.level}</span></div>
                 <div className="p-4"><div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-orange/10 text-orange"><Dumbbell size={14} /></div><p className="font-medium text-ink">{ex.name}</p><p className="mt-1 text-xs text-ink-faint">{ex.muscle}</p></div>
               </article>

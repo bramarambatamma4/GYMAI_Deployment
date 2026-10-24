@@ -68,9 +68,9 @@ export default function Dashboard() {
         </motion.header>
 
         <section className="grid gap-4 md:grid-cols-3">
-          <div className="border border-surface-border bg-surface p-5"><p className="label-eyebrow">Goal</p><p className="mt-3 font-display text-xl font-semibold text-ink">{goal}</p></div>
-          <div className="border border-surface-border bg-surface p-5"><p className="label-eyebrow">Training level</p><p className="mt-3 font-display text-xl font-semibold text-ink">{level}</p></div>
-          <div className="border border-surface-border bg-surface p-5"><p className="label-eyebrow">Equipment</p><p className="mt-3 font-display text-xl font-semibold text-ink">{equipment}</p></div>
+          <div className="border border-surface-border bg-surface glow-card p-5"><p className="label-eyebrow">Goal</p><p className="mt-3 font-display text-xl font-semibold text-ink">{goal}</p></div>
+          <div className="border border-surface-border bg-surface glow-card p-5"><p className="label-eyebrow">Training level</p><p className="mt-3 font-display text-xl font-semibold text-ink">{level}</p></div>
+          <div className="border border-surface-border bg-surface glow-card p-5"><p className="label-eyebrow">Equipment</p><p className="mt-3 font-display text-xl font-semibold text-ink">{equipment}</p></div>
         </section>
 
         <DashboardWorkout workout={todayWorkout} />
@@ -114,7 +114,7 @@ export default function Dashboard() {
         <section className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
           <div>
             <div className="mb-4"><p className="label-eyebrow">Training signal</p><h2 className="mt-2 font-display text-2xl font-semibold text-ink">Activity this week</h2></div>
-            <div className="border border-surface-border bg-surface p-5 sm:p-6"><DashboardActivity activity={dashboard.activity} /></div>
+            <div className="border border-surface-border bg-surface glow-card p-5 sm:p-6"><DashboardActivity activity={dashboard.activity} /></div>
           </div>
           <RecentWorkouts workouts={dashboard.recent_workouts} />
         </section>

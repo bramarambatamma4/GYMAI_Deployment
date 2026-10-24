@@ -27,7 +27,7 @@ export function ProtectedRoute({
     return (
       <div className="min-h-screen bg-charcoal px-5 py-10 text-ink">
         <div className="mx-auto flex min-h-[80vh] max-w-xl items-center justify-center">
-          <div className="w-full rounded-3xl border border-surface-border bg-surface p-8 text-center shadow-card sm:p-10">
+          <div className="w-full rounded-3xl border border-surface-border bg-surface glow-card p-8 text-center shadow-card sm:p-10">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-orange/20 bg-orange/10 text-orange">
               <LockKeyhole size={28} />
             </div>
