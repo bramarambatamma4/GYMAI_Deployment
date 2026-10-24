@@ -98,7 +98,7 @@ export function BeginnerPoseTrainer({ exercise, onClose, onComplete }: Props) {
   }
 
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/95 p-4 backdrop-blur-sm">
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-5xl overflow-hidden rounded-2xl border border-surface-border bg-surface shadow-2xl">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-5xl overflow-hidden rounded-2xl border border-surface-border bg-surface glow-card shadow-2xl">
       <div className="flex items-center justify-between border-b border-surface-border px-5 py-4">
         <div><Badge variant="emerald">Beginner AI Form Check</Badge><h2 className="mt-2 font-display text-xl font-semibold text-ink">{poseLabel(exercise.poseType)}</h2></div>
         <button onClick={onClose} aria-label="Close" className="rounded-lg p-2 text-ink-muted hover:bg-surface-raised hover:text-ink"><X size={20} /></button>

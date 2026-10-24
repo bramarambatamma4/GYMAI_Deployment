@@ -1,22 +1,27 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail } from 'lucide-react'
+import { GoogleButton } from '@/components/auth/GoogleButton'
 import { AuthLayout } from '@/components/auth/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { useAuth } from '@/context/AuthContext'
+import { getRememberedEmail } from '@/lib/rememberedEmail'
 import { useToast } from '@/context/ToastContext'
 
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(getRememberedEmail) // CHANGE: remembered email is pre-filled
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const { login, error, clearError } = useAuth()
   const { showToast } = useToast()
   const navigate = useNavigate()
 
-  const isValid = email.trim().length > 3 && email.includes('@') && password.length >= 6
+  // CHANGE: an error from another page (e.g. a failed login) must not show up here.
+  useEffect(() => { clearError() }, [clearError])
+
+  const isValid = email.trim().length > 3 && email.includes('@') && password.length >= 1
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -45,11 +50,11 @@ export default function Login() {
           label="Email"
           name="email"
           type="email"
-          autoComplete="email"
+          autoComplete="username"
           placeholder="you@example.com"
           icon={<Mail size={16} />}
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => { setEmail(e.target.value); if (error) clearError() }} // CHANGE: alert disappears when typing restarts
         />
         <PasswordInput
           label="Password"
@@ -57,7 +62,7 @@ export default function Login() {
           autoComplete="current-password"
           placeholder="••••••••"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => { setPassword(e.target.value); if (error) clearError() }} // CHANGE: alert disappears when typing restarts
         />
         <div className="-mt-1 flex justify-end">
           <Link to="/forgot-password" className="text-xs font-medium text-orange hover:text-orange-light">Forgot password?</Link>
@@ -71,6 +76,9 @@ export default function Login() {
 
         <Button type="submit" disabled={!isValid || loading} className="w-full">{loading ? 'Signing in…' : 'Log in'}</Button>
       </form>
+
+      {/* CHANGE: Continue with Google */}
+      <GoogleButton />
 
       <p className="mt-6 text-center text-sm text-ink-faint">
         New to GymAI?{' '}

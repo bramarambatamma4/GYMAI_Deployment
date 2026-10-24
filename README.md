@@ -160,3 +160,62 @@ The profile is now a step-by-step experience: name → avatar/photo → age → 
 
 ### UI refresh
 The application UI has been moved away from heavy glassmorphism. App pages use solid surfaces, clearer borders, stronger hierarchy and lighter card usage. Blur/backdrop effects are disabled for the application shell and reusable cards.
+
+## Production-ready authentication notes
+
+### Gmail SMTP email verification
+Registration now creates a pending registration, hashes a 6-digit code, stores it in PostgreSQL/SQLite, sends the code through SMTP, and only creates the real user after successful verification.
+
+Use a Gmail account with 2-Step Verification and a Gmail App Password. Never put the normal Gmail account password in `SMTP_PASSWORD`.
+
+Backend `.env`:
+
+```ini
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-16-character-gmail-app-password
+SMTP_FROM=your-email@gmail.com
+SMTP_USE_TLS=true
+REGISTRATION_CODE_EXPIRE_MINUTES=10
+REGISTRATION_RESEND_SECONDS=60
+```
+
+Restart FastAPI after changing environment variables.
+
+### Google OAuth Web Application
+Configure a Google Cloud OAuth Web Application and add this local redirect URI:
+
+```text
+http://localhost:8000/api/auth/google/callback
+```
+
+Backend:
+
+```ini
+GOOGLE_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=YOUR_CLIENT_SECRET
+GOOGLE_REDIRECT_URI=http://localhost:8000/api/auth/google/callback
+FRONTEND_URL=http://localhost:5173
+```
+
+Frontend:
+
+```ini
+VITE_GOOGLE_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
+VITE_API_URL=http://localhost:8000/api
+```
+
+For production, use your exact HTTPS backend callback in both `GOOGLE_REDIRECT_URI` and Google Cloud's Authorized redirect URIs, for example:
+
+```text
+https://YOUR-BACKEND-DOMAIN/api/auth/google/callback
+```
+
+### Marathon alerts
+Users choose country, state, and area only from dropdowns. Marathon notifications are matched to all three values. If a matching marathon exists, the in-app alert is shown and the configured notification email is sent. If none exists, the UI displays a clear `No marathon available ...` message.
+
+The admin event endpoint is protected by `ADMIN_API_KEY`. Event creation sends matching emails synchronously; if SMTP delivery fails, the API returns an error instead of silently claiming that the emails were sent.
+
+### Motivation notifications
+The frontend shows a motivational notification every 30 seconds while the app is open. Each notification remains visible briefly and can be dismissed.

@@ -10,7 +10,6 @@ import {
   Flame,
   Clock3,
   Dumbbell,
-  Camera,
 } from 'lucide-react'
 
 import { AppShell } from '@/components/layout/AppShell'
@@ -18,7 +17,6 @@ import { PageHeader } from '@/components/layout/PageHeader'
 
 import { StatCard } from '@/components/gymai/StatCard'
 import { ProgressCard } from '@/components/gymai/ProgressCard'
-import { DistributionCard } from '@/components/gymai/DistributionCard'
 
 import { SkeletonCard } from '@/components/ui/Skeleton'
 
@@ -129,7 +127,7 @@ export default function ProgressPage() {
       <PageHeader
         eyebrow="Analytics"
         title="Progress"
-        description="See how your workouts, consistency, and training focus change over time."
+        description="See how your training time, sets, and consistency change over time."
       />
 
       <div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -173,7 +171,6 @@ export default function ProgressPage() {
 
         <StatCard label="Sets completed" value={data.completedSets} suffix={` / ${data.totalSets}`} icon={<Dumbbell size={16} />} />
 
-        <StatCard label="Average AI form" value={data.averageFormScore ?? '—'} suffix={data.averageFormScore != null ? '%' : ''} icon={<Camera size={16} />} />
 
       </div>
 
@@ -195,24 +192,13 @@ export default function ProgressPage() {
         />
 
         <ProgressCard
-          title="Workout frequency"
-          description="Number of completed workout sessions each week."
-          data={data.frequencyByWeek}
-          unit=" sessions"
-        />
-
-        <ProgressCard
           title="Training consistency"
           description="Your weekly workout completion activity."
           data={data.strengthProgression}
           unit="%"
         />
 
-        <DistributionCard title="Workout focus distribution" description="How your completed workouts are distributed by training focus." data={data.muscleDistribution} />
-
         <ProgressCard title="Sets completed" description="Completed sets recorded from your workout sessions." data={data.setsByWeek} unit=" sets" />
-
-        <ProgressCard title="AI form quality" description="Average form score from your supported Beginner pose sessions." data={data.formByWeek} unit="%" />
 
       </div>
     </AppShell>

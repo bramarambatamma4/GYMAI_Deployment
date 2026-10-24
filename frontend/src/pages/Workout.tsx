@@ -6,21 +6,22 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { WorkoutProgress } from '@/components/gymai/WorkoutProgress'
-import { SkeletonCard } from '@/components/ui/Skeleton'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
-import { completeWorkout, getTodayWorkout } from '@/services/workoutService'
+import { completeWorkout } from '@/services/workoutService'
+import { getActiveWorkout } from '@/services/aiWorkoutService'
+import { TIMER_KEY, LAP_KEY } from '@/lib/workoutTimerStorage'
+import { ExerciseMedia } from '@/components/gymai/ExerciseMedia'
 import { ExerciseInlineVideo } from '@/components/gymai/ExerciseInlineVideo'
+import { AIWorkoutPlanner } from '@/components/gymai/AIWorkoutPlanner'
 import type { Workout as WorkoutType, WorkoutExercise } from '@/types'
 
 /**
  * The timer is intentionally stored as elapsed seconds + a start timestamp.
- * This means the timer continues while the page is hidden, refreshed, closed,
- * or the browser is reopened. It stops only when the user presses Stop or Reset.
+ * The timer continues while the page is hidden or refreshed. It is cleared
+ * on every login/logout (see AuthContext), so each session starts at 00:00.
  */
-const TIMER_KEY = 'gymai_workout_timer_v2'
-const LAP_KEY = 'gymai_workout_laps_v1'
 type TimerState = { running: boolean; elapsed: number; startedAt: number | null }
 
 const EMPTY_TIMER: TimerState = { running: false, elapsed: 0, startedAt: null }
@@ -29,17 +30,9 @@ function readTimer(): TimerState {
   try {
     const saved = JSON.parse(localStorage.getItem(TIMER_KEY) || 'null') as TimerState | null
     if (!saved) return EMPTY_TIMER
-
-    if (!saved.running || !saved.startedAt) {
-      return { running: false, elapsed: Math.max(0, saved.elapsed || 0), startedAt: null }
-    }
-
-    const additionalSeconds = Math.max(0, Math.floor((Date.now() - saved.startedAt) / 1000))
-    return {
-      running: true,
-      elapsed: Math.max(0, saved.elapsed || 0) + additionalSeconds,
-      startedAt: Date.now(),
-    }
+    const elapsed = Math.max(0, saved.elapsed || 0)
+    // Keep the original startedAt: elapsed time is always elapsed + (now - startedAt).
+    return saved.running && saved.startedAt ? { running: true, elapsed, startedAt: saved.startedAt } : { running: false, elapsed, startedAt: null }
   } catch {
     return EMPTY_TIMER
   }
@@ -78,45 +71,18 @@ export default function Workout() {
   const [alarmShaking, setAlarmShaking] = useState(false)
   const [finished, setFinished] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [videoOpen, setVideoOpen] = useState(false)
   const [videoLevel, setVideoLevel] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner')
 
-  useEffect(() => {
-    if (!user) return
-    setLoading(true)
-
-    getTodayWorkout(user)
-      .then((result) => {
-        setWorkout(result)
-        setExercises(
-          result?.exercises.map((exercise) => ({
-            ...exercise,
-            completed: false,
-            completedSets: 0,
-          })) ?? [],
-        )
-        setActiveIndex(0)
-      })
-      .catch(() => showToast(t('Unable to load your workout.'), 'error'))
-      .finally(() => setLoading(false))
-  }, [user, showToast, t])
-
-  // Keep the visible clock accurate while the page is open. The actual elapsed
-  // value always comes from the persisted timestamp, not from interval ticks.
+  // Re-render every 250ms while running so the clock ticks; the value itself
+  // is derived from startedAt, so background tabs never lose time.
+  const [, setTick] = useState(0)
   useEffect(() => {
     if (!timer.running) return
-
-    const refresh = () => setTimer(readTimer())
-    const id = window.setInterval(refresh, 250)
-    document.addEventListener('visibilitychange', refresh)
-    window.addEventListener('focus', refresh)
-
-    return () => {
-      window.clearInterval(id)
-      document.removeEventListener('visibilitychange', refresh)
-      window.removeEventListener('focus', refresh)
-    }
+    const id = window.setInterval(() => setTick((n) => n + 1), 250)
+    const wake = () => setTick((n) => n + 1)
+    document.addEventListener('visibilitychange', wake)
+    return () => { window.clearInterval(id); document.removeEventListener('visibilitychange', wake) }
   }, [timer.running])
 
   useEffect(() => {
@@ -147,6 +113,7 @@ export default function Workout() {
   const active = exercises[activeIndex]
   const elapsedMinutes = Math.max(1, Math.ceil(elapsedSeconds / 60))
   const timerLabel = formatTime(elapsedSeconds)
+  const timerStarted = timer.running || timer.elapsed > 0
   const translatedFocus = workout ? translateFocus(workout.focus, t) : ''
 
   const startTimer = () => {
@@ -239,33 +206,43 @@ export default function Workout() {
     }
   }
 
-  if (!user || loading) {
-    return (
-      <AppShell>
-        <div className="space-y-4">
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
-      </AppShell>
-    )
-  }
+  // CHANGE 4: the reminder email deep-links here; restore today's unfinished plan
+  // (only exists if the user already pressed Generate Plan today).
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    getActiveWorkout()
+      .then((restored) => {
+        if (!active || !restored) return
+        setWorkout((current) => current ?? restored)
+        setExercises((current) => (current.length ? current : restored.exercises.map((exercise) => ({ ...exercise, completed: false, completedSets: 0 }))))
+      })
+      .catch(() => undefined) // no active plan / offline: show the generator as usual
+    return () => { active = false }
+  }, [user])
 
+  if (!user) return null
+
+  const handleGenerated = (generated: WorkoutType) => {
+    setWorkout(generated)
+    setExercises(generated.exercises.map((exercise) => ({ ...exercise, completed: false, completedSets: 0 })))
+    setActiveIndex(0)
+    setFinished(false)
+    showToast(t('AI workout generated successfully.'), 'success')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+  const planner = <AIWorkoutPlanner user={user} onGenerated={handleGenerated} />
+
+  // Nothing but the coach is shown until the user presses "Generate Plan".
   if (!workout) {
     return (
       <AppShell>
         <PageHeader
           eyebrow={t('Workout')}
-          title={t("Your workout isn't ready yet.")}
-          description={t('Complete your training profile so GymAI can select exercises from your available equipment.')}
+          title={t('AI Workout Coach')}
+          description={t('Generate a session tailored to your profile.')}
         />
-        <div className="mx-auto max-w-2xl border border-surface-border bg-surface p-6">
-          <p className="text-sm text-ink-muted">
-            {t('GymAI needs your fitness level, goal, and equipment before it can build a personalized workout.')}
-          </p>
-          <Button className="mt-5" onClick={() => window.location.assign('/profile')}>
-            {t('Complete profile')}
-          </Button>
-        </div>
+        <div className="mx-auto max-w-4xl">{planner}</div>
       </AppShell>
     )
   }
@@ -302,13 +279,17 @@ export default function Workout() {
         eyebrow={translatedFocus}
         title={workout.name}
         description={`${workout.durationMinutes} ${t('min')} · ${t(workout.difficulty)}`}
-        action={(
-          <div className="flex items-center gap-2 border border-surface-border bg-surface px-3 py-2" aria-live="polite">
-            <Clock3 size={15} className={timer.running ? 'text-orange' : 'text-ink-faint'} />
-            <span className="font-mono text-sm text-ink">{timerLabel}</span>
+        action={timerStarted ? (
+          <div className="flex items-center gap-2 rounded-xl border border-orange/40 bg-orange/10 px-4 py-2 shadow-[0_0_20px_-8px_rgba(255,90,0,.8)]">
+            <Clock3 size={16} className={timer.running ? 'animate-pulse text-orange' : 'text-ink-faint'} />
+            <span className="font-mono text-lg font-semibold text-ink">{timerLabel}</span>
           </div>
-        )}
+        ) : undefined}
       />
+
+      <div className="mx-auto mb-6 max-w-7xl">
+        {planner}
+      </div>
 
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
@@ -316,10 +297,16 @@ export default function Workout() {
 
           {/* Workout timer controls — Start, Stop, Lap and Reset are all preserved. */}
           <section className="card-surface p-4 sm:p-5">
+            {timerStarted && (
+              <div className="mb-4 flex items-baseline gap-3">
+                <span className="font-mono text-5xl font-semibold tabular-nums text-ink">{timerLabel}</span>
+                <span className={`text-xs font-medium uppercase tracking-wider ${timer.running ? 'text-orange' : 'text-ink-faint'}`}>{timer.running ? 'Running' : 'Stopped'}</span>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <Button onClick={startTimer} disabled={timer.running}>
                 <Play size={15} />
-                {t('Start timer')}
+                {timer.elapsed > 0 && !timer.running ? t('Resume') : t('Start timer')}
               </Button>
               <Button variant="secondary" onClick={stopTimer} disabled={!timer.running}>
                 <Square size={14} />
@@ -360,7 +347,7 @@ export default function Workout() {
             )}
 
             <p className="mt-3 text-xs text-ink-faint">
-              {t('The timer keeps counting across refreshes and when you leave the site. It stops only when you press Stop or Reset.')}
+              {t('The timer keeps counting across refreshes and resets to 00:00 every time you log in.')}
             </p>
           </section>
 
@@ -372,13 +359,8 @@ export default function Workout() {
               className="card-surface overflow-hidden p-6 sm:p-7"
             >
               <div className="grid gap-6 md:grid-cols-[220px_1fr]">
-                <div className="overflow-hidden rounded-xl border border-surface-border bg-surface-raised">
-                  <img
-                    src={active.imageUrl}
-                    alt={`${active.name} ${t('exercise demonstration')}`}
-                    className="aspect-square h-full w-full object-cover"
-                  />
-                </div>
+                {/* CHANGE: name-matched photo, with the demo video card when no photo can load */}
+                <ExerciseMedia exercise={active} />
 
                 <div>
                   <div className="flex items-start justify-between gap-4">

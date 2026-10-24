@@ -15,7 +15,7 @@ export function TrainingStatus({
     <motion.div
       whileHover={{ y: -2 }}
       transition={{ duration: 0.2 }}
-      className="border border-surface-border bg-surface p-5"
+      className="border border-surface-border bg-surface glow-card p-5"
     >
       <div className="flex items-start justify-between">
 
