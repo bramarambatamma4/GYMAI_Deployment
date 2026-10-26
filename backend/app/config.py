@@ -21,13 +21,17 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     cors_origin_regex: str = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
 
-    # SMTP compatibility kept for older deployments; not used by the Resend integration.
+    # SMTP compatibility kept for older deployments; not used by the Google Apps Script integration.
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_from: str = ""
     smtp_use_tls: bool = True
+
+    # Google Apps Script-based email delivery for GymAI.
+    gymai_email_script_url: str = ""
+    gymai_email_api_secret: str = ""
 
     resend_api_key: str = ""
     email_from: str = ""
