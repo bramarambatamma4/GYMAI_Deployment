@@ -6,3 +6,12 @@ venv/
 .venv/
 *.db
 .env
+
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# TypeScript build metadata
+*.tsbuildinfo

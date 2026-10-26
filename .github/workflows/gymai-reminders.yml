@@ -1,0 +1,32 @@
+name: GymAI Reminders
+
+on:
+  schedule:
+    - cron: '30 15 * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger-reminders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger reminder job on Render
+        env:
+          GYMAI_API_URL: ${{ secrets.GYMAI_API_URL }}
+          GYMAI_SCHEDULER_KEY: ${{ secrets.GYMAI_SCHEDULER_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GYMAI_API_URL}" ] || [ -z "${GYMAI_SCHEDULER_KEY}" ]; then
+            echo "Missing required GitHub secrets: GYMAI_API_URL and/or GYMAI_SCHEDULER_KEY"
+            exit 1
+          fi
+
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "X-Scheduler-Key: ${GYMAI_SCHEDULER_KEY}" \
+            --header "Content-Type: application/json" \
+            --max-time 60 \
+            --retry 5 \
+            --retry-delay 15 \
+            --retry-connrefused \
+            "${GYMAI_API_URL}/api/internal/reminders/run"
