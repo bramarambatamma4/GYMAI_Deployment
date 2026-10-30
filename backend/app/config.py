@@ -93,6 +93,24 @@ def validate_runtime_settings() -> None:
     if settings.secret_key in INSECURE_SECRET_VALUES:
         raise RuntimeError("SECRET_KEY must not use the default or placeholder value in production.")
 
+    if not settings.frontend_url or settings.frontend_url.strip() == "":
+        raise RuntimeError("FRONTEND_URL must be set to the deployed Vercel frontend in production.")
+
+    if settings.frontend_url.startswith("http://localhost"):
+        raise RuntimeError("FRONTEND_URL must not point to localhost in production.")
+
+    if not settings.cors_origins or not settings.cors_origin_list:
+        raise RuntimeError("CORS_ORIGINS must include the deployed Vercel frontend in production.")
+
+    if not settings.gymai_email_script_url or not settings.gymai_email_api_secret:
+        raise RuntimeError("GYMAI_EMAIL_SCRIPT_URL and GYMAI_EMAIL_API_SECRET must be configured in production.")
+
+    if not settings.google_client_id or not settings.google_client_secret:
+        raise RuntimeError("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be configured in production.")
+
+    if not settings.google_redirect_uri or settings.google_redirect_uri.startswith("http://localhost"):
+        raise RuntimeError("GOOGLE_REDIRECT_URI must use the deployed Render callback URL in production.")
+
     validate_database_url_for_runtime()
 
 

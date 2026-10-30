@@ -2,8 +2,17 @@ import axios from 'axios'
 
 const LOCAL_API_URL = 'http://localhost:8000/api'
 
+export function normalizeApiBaseUrl(value: string): string {
+  const trimmed = (value ?? '').trim().replace(/\/+$/, '')
+  if (!trimmed) {
+    return ''
+  }
+
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`
+}
+
 export function getApiBaseUrl(): string {
-  const configured = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/$/, '')
+  const configured = normalizeApiBaseUrl(import.meta.env.VITE_API_URL ?? '')
 
   if (configured) {
     return configured
